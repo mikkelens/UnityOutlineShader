@@ -25,6 +25,9 @@ Shader "Hidden/Roystan/Outline Post Process"
 			// https://docs.unity3d.com/Manual/SL-PropertiesInPrograms.html
 			float4 _MainTex_TexelSize;
 
+            float _Scale;
+            int _DepthThreshold;
+
 			// Combines the top and bottom colors using normal blending.
 			// https://en.wikipedia.org/wiki/Blend_modes#Normal_blend_mode
 			// This performs the same operation as Blend SrcAlpha OneMinusSrcAlpha.
@@ -38,7 +41,34 @@ Shader "Hidden/Roystan/Outline Post Process"
 
 			float4 Frag(VaryingsDefault i) : SV_Target
 			{
+				float halfScaleFloor = floor(_Scale * 0.5);
+				float halfScaleCeil = ceil(_Scale * 0.5);
+
+				float2 texelSize = float2(_MainTex_TexelSize.x, _MainTex_TexelSize.y);
+
+				float2 bottomLeftUV = i.texcoord - texelSize * halfScaleFloor;
+				float2 topRightUV = i.texcoord + texelSize * halfScaleCeil;
+
+				float2 bottomRightUV = i.texcoord + float2(texelSize.x * halfScaleCeil, -texelSize.y * halfScaleFloor);
+				float2 topLeftUV = i.texcoord + float2(-texelSize.x * halfScaleFloor, texelSize.y * halfScaleCeil);
+
+				float depth0 = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, bottomLeftUV).r;
+				float depth1 = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, topRightUV).r;
+				float depth2 = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, bottomRightUV).r;
+				float depth3 = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, topLeftUV).r;
+
+				float depthFiniteDifference0 = depth1 - depth0;
+				float depthFiniteDifference1 = depth3 - depth2;
+
+				float edgeDepth = sqrt(pow(depthFiniteDifference0, 2)
+					+ pow(depthFiniteDifference1, 2)) * 100;
+				edgeDepth = edgeDepth > _DepthThreshold ? 1 : 0;
+				
+				return edgeDepth;
+				
+				// original
 				float4 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.texcoord);
+				
 
 				return color;
 			}
