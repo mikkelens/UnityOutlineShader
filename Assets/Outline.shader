@@ -27,6 +27,8 @@ Shader "Hidden/Roystan/Outline Post Process"
 
             float _Scale;
             int _DepthThreshold;
+            float _NormalThreshold;
+            float4x4 _ClipToView;
 
 			// Combines the top and bottom colors using normal blending.
 			// https://en.wikipedia.org/wiki/Blend_modes#Normal_blend_mode
@@ -63,12 +65,28 @@ Shader "Hidden/Roystan/Outline Post Process"
 				float edgeDepth = sqrt(pow(depthFiniteDifference0, 2)
 					+ pow(depthFiniteDifference1, 2)) * 100;
 				edgeDepth = edgeDepth > _DepthThreshold ? 1 : 0;
+
+				float3 normal0 = SAMPLE_TEXTURE2D(_CameraNormalsTexture, sampler_CameraNormalsTexture, bottomLeftUV).rgb;
+				float3 normal1= SAMPLE_TEXTURE2D(_CameraNormalsTexture, sampler_CameraNormalsTexture, topRightUV).rgb;
+				float3 normal2 = SAMPLE_TEXTURE2D(_CameraNormalsTexture, sampler_CameraNormalsTexture, bottomRightUV).rgb;
+				float3 normal3 = SAMPLE_TEXTURE2D(_CameraNormalsTexture, sampler_CameraNormalsTexture, topLeftUV).rgb;
+
+				float3 normalFiniteDifference0 = normal1 - normal0;
+				float3 normalFiniteDifference1 = normal3 - normal2;
+
+				float edgeNormal = sqrt(dot(normalFiniteDifference0, normalFiniteDifference0)
+					+ dot(normalFiniteDifference1, normalFiniteDifference1));
+				edgeNormal = edgeNormal > _NormalThreshold ? 1 : 0;
+
+				// return edgeNormal;
 				
-				return edgeDepth;
+				// return edgeDepth;
+
+				float edge = max(edgeDepth, edgeNormal);
+				return edge;
 				
 				// original
 				float4 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.texcoord);
-				
 
 				return color;
 			}

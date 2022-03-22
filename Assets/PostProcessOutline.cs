@@ -8,6 +8,7 @@ public sealed class PostProcessOutline : PostProcessEffectSettings
 {
     public IntParameter scale = new IntParameter { value = 1 };
     public FloatParameter depthThreshold = new FloatParameter { value = 0.2f };
+    [Range(0, 1)] public FloatParameter normalThreshold = new FloatParameter { value = 0.4f };
 }
 
 public sealed class PostProcessOutlineRenderer : PostProcessEffectRenderer<PostProcessOutline>
@@ -17,6 +18,9 @@ public sealed class PostProcessOutlineRenderer : PostProcessEffectRenderer<PostP
         var sheet = context.propertySheets.Get(Shader.Find("Hidden/Roystan/Outline Post Process"));
         sheet.properties.SetFloat("_Scale", settings.scale);
         sheet.properties.SetFloat("_DepthThreshold", settings.depthThreshold);
+        sheet.properties.SetFloat("_NormalThreshold", settings.normalThreshold);
+        Matrix4x4 clipToView = GL.GetGPUProjectionMatrix(context.camera.projectionMatrix, true).inverse;
+        sheet.properties.SetMatrix("_ClipToView", clipToView);
         context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 0);
     }
 }
