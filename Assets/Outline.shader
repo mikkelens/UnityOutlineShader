@@ -10,7 +10,7 @@ Shader "Hidden/Roystan/Outline Post Process"
 			// with lots of macros to aid with platform differences.
 			// https://github.com/Unity-Technologies/PostProcessing/wiki/Writing-Custom-Effects#shader
             HLSLPROGRAM
-            #pragma vertex VertDefault
+            #pragma vertex Vert
             #pragma fragment Frag
 
 			#include "Packages/com.unity.postprocessing/PostProcessing/Shaders/StdLib.hlsl"
@@ -28,6 +28,8 @@ Shader "Hidden/Roystan/Outline Post Process"
             float _Scale;
             int _DepthThreshold;
             float _NormalThreshold;
+            float _DepthNormalThreshold;
+            float _DepthNormalThresholdScale;
             float4x4 _ClipToView;
 
 			// Combines the top and bottom colors using normal blending.
@@ -41,8 +43,36 @@ Shader "Hidden/Roystan/Outline Post Process"
 				return float4(color, alpha);
 			}
 
-			float4 Frag(VaryingsDefault i) : SV_Target
-			{
+            struct Varyings
+            {
+	            float4 vertex : SV_POSITION;
+				float3 viewSpaceDir : TEXCOORD2;
+				float2 texcoord : TEXCOORD0;
+				float2 texcoordStereo : TEXCOORD1;
+			#if STEREO_INSTANCING_ENABLED
+				uint stereoTargetEyeIndex : SV_RenderTargetArrayIndex;
+			#endif
+            };
+
+            Varyings Vert(AttributesDefault v)
+            {
+	            Varyings o;
+            	o.vertex = float4(v.vertex.xy, 0.0, 1.0);
+
+            	o.viewSpaceDir = mul(_ClipToView, o.vertex).xyz;
+            	
+            	o.texcoord = TransformTriangleVertexToUV(v.vertex.xy);
+            	
+            #if UNITY_UV_STARTS_AT_TOP
+				o.texcoord = o.texcoord * float2(1.0, -1.0) + float2(0.0, 1.0);
+            #endif
+
+            	o.texcoordStereo = TransformStereoScreenSpaceTex(o.texcoord, 1.0);
+				return o;
+            }
+
+			float4 Frag(Varyings i) : SV_Target
+			{				
 				float halfScaleFloor = floor(_Scale * 0.5);
 				float halfScaleCeil = ceil(_Scale * 0.5);
 
@@ -61,11 +91,7 @@ Shader "Hidden/Roystan/Outline Post Process"
 
 				float depthFiniteDifference0 = depth1 - depth0;
 				float depthFiniteDifference1 = depth3 - depth2;
-
-				float edgeDepth = sqrt(pow(depthFiniteDifference0, 2)
-					+ pow(depthFiniteDifference1, 2)) * 100;
-				edgeDepth = edgeDepth > _DepthThreshold ? 1 : 0;
-
+				
 				float3 normal0 = SAMPLE_TEXTURE2D(_CameraNormalsTexture, sampler_CameraNormalsTexture, bottomLeftUV).rgb;
 				float3 normal1= SAMPLE_TEXTURE2D(_CameraNormalsTexture, sampler_CameraNormalsTexture, topRightUV).rgb;
 				float3 normal2 = SAMPLE_TEXTURE2D(_CameraNormalsTexture, sampler_CameraNormalsTexture, bottomRightUV).rgb;
@@ -74,6 +100,18 @@ Shader "Hidden/Roystan/Outline Post Process"
 				float3 normalFiniteDifference0 = normal1 - normal0;
 				float3 normalFiniteDifference1 = normal3 - normal2;
 
+				float edgeDepth = sqrt(pow(depthFiniteDifference0, 2)
+					+ pow(depthFiniteDifference1, 2)) * 100;
+				
+				float3 viewNormal = normal0 * 2 - 1;
+				float NdotV = 1 - dot(viewNormal, -i.viewSpaceDir);
+
+				float normalThreshold01 = saturate((NdotV - _DepthNormalThreshold) / (1 - _DepthNormalThreshold));
+				float normalThreshold = normalThreshold01 * _DepthNormalThresholdScale + 1;
+				
+				float depthThreshold = _DepthThreshold * depth0 * normalThreshold;
+				edgeDepth = edgeDepth > depthThreshold ? 1 : 0;
+				
 				float edgeNormal = sqrt(dot(normalFiniteDifference0, normalFiniteDifference0)
 					+ dot(normalFiniteDifference1, normalFiniteDifference1));
 				edgeNormal = edgeNormal > _NormalThreshold ? 1 : 0;
