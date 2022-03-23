@@ -64,7 +64,7 @@ MonoBehaviour:
     value: 1
   scale:
     overrideState: 1
-    value: 1
+    value: 4
   depthThreshold:
     overrideState: 1
     value: 1.5
@@ -76,7 +76,7 @@ MonoBehaviour:
     value: 0.5
   depthNormalThresholdScale:
     overrideState: 1
-    value: 7
+    value: 1.82
 --- !u!114 &5464407796326455298
 MonoBehaviour:
   m_ObjectHideFlags: 3
