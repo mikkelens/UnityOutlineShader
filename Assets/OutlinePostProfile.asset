@@ -46,6 +46,9 @@ MonoBehaviour:
   depthNormalThresholdScale:
     overrideState: 0
     value: 7
+  color:
+    overrideState: 0
+    value: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &114690758142213254
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -64,19 +67,22 @@ MonoBehaviour:
     value: 1
   scale:
     overrideState: 1
-    value: 4
+    value: 3
   depthThreshold:
     overrideState: 1
     value: 1.5
   normalThreshold:
     overrideState: 1
-    value: 0.4
+    value: 0.5
   depthNormalThreshold:
     overrideState: 1
-    value: 0.5
+    value: 0.4
   depthNormalThresholdScale:
     overrideState: 1
-    value: 1.82
+    value: 7
+  color:
+    overrideState: 1
+    value: {r: 1, g: 0.942152, b: 0.6839622, a: 1}
 --- !u!114 &5464407796326455298
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -95,7 +101,7 @@ MonoBehaviour:
     value: 1
   intensity:
     overrideState: 1
-    value: 2.8
+    value: 10
   threshold:
     overrideState: 0
     value: 1

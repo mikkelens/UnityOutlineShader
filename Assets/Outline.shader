@@ -25,6 +25,7 @@ Shader "Hidden/Roystan/Outline Post Process"
 			// https://docs.unity3d.com/Manual/SL-PropertiesInPrograms.html
 			float4 _MainTex_TexelSize;
 
+            float4 _Color;
             float _Scale;
             int _DepthThreshold;
             float _NormalThreshold;
@@ -116,17 +117,14 @@ Shader "Hidden/Roystan/Outline Post Process"
 					+ dot(normalFiniteDifference1, normalFiniteDifference1));
 				edgeNormal = edgeNormal > _NormalThreshold ? 1 : 0;
 
-				// return edgeNormal;
-				
-				// return edgeDepth;
-
 				float edge = max(edgeDepth, edgeNormal);
-				return edge;
+
+				float4 edgeColor = float4(_Color.rgb, _Color.a * edge);
 				
 				// original
 				float4 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.texcoord);
 
-				return color;
+				return alphaBlend(edgeColor, color);
 			}
 			ENDHLSL
 		}
